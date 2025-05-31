@@ -1,0 +1,589 @@
+/* עיצוב כללי */
+:root {
+    --primary-color: #2c3e50;
+    --secondary-color: #3498db;
+    --background-color: #1e1e1e;
+    --text-color: #ffffff;
+    --chord-color: #2563eb;
+    --lyrics-color: #ffffff;
+    --section-color: #dc2626;
+    --font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background-color: var(--background-color);
+    color: var(--text-color);
+    font-family: var(--font-family);
+    margin: 0;
+    padding: 0;
+    direction: rtl;
+}
+
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+/* כותרת */
+.song-info {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+#song-title {
+    font-size: 2.5rem;
+    color: #00d1b2;
+    margin: 0;
+}
+
+#artist-name {
+    font-size: 1.5rem;
+    color: #b5b5b5;
+    margin: 0.5rem 0;
+}
+
+/* תוכן השיר */
+#chords-container {
+    background-color: #2a2a2a;
+    border-radius: 10px;
+    padding: 2rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    margin-top: 2rem;
+}
+
+.chords-text {
+    font-family: 'Courier New', monospace;
+    white-space: pre-wrap;
+    line-height: 1.6;
+    direction: rtl;
+    text-align: right;
+    color: var(--lyrics-color);
+    unicode-bidi: plaintext;
+}
+
+/* זוג של שורת אקורדים ושורת מילים */
+.chord-lyrics-pair {
+    margin-bottom: 12px;
+}
+
+.chord-lyrics-pair .chords {
+    color: var(--chord-color);
+    font-weight: bold;
+    font-size: 14px;
+    margin-bottom: 2px;
+    letter-spacing: 0.5px;
+}
+
+.chord-lyrics-pair .lyrics {
+    color: var(--lyrics-color);
+    font-size: 16px;
+    margin-bottom: 8px;
+}
+
+/* שורת אקורדים בלבד */
+.chords-only {
+    color: var(--chord-color);
+    font-weight: bold;
+    font-size: 14px;
+    margin: 8px 0;
+    padding-left: 10px;
+    border-left: 3px solid var(--chord-color);
+    letter-spacing: 0.5px;
+}
+
+/* שורת מילים בלבד */
+.lyrics-line {
+    color: var(--lyrics-color);
+    font-size: 16px;
+    margin: 4px 0;
+    padding-left: 5px;
+}
+
+/* כותרות סקציות */
+.section-header {
+    font-weight: bold;
+    color: var(--section-color);
+    font-size: 18px;
+    margin: 20px 0 10px 0;
+    padding: 8px 12px;
+    background-color: rgba(220, 38, 38, 0.1);
+    border-left: 4px solid var(--section-color);
+    border-radius: 4px;
+}
+
+/* שורות מעורבות (אקורדים ומילים יחד) */
+.mixed-line {
+    color: var(--lyrics-color);
+    font-size: 16px;
+    margin: 6px 0;
+    line-height: 1.8;
+}
+
+.mixed-line .inline-chord {
+    color: var(--chord-color);
+    font-weight: bold;
+    background-color: rgba(37, 99, 235, 0.1);
+    padding: 1px 4px;
+    border-radius: 3px;
+    font-size: 12px;
+    margin: 0 2px;
+}
+
+/* הודעת המתנה */
+#waiting-message {
+    text-align: center;
+    font-size: 1.2rem;
+    color: #b5b5b5;
+    margin-top: 2rem;
+    padding: 2rem;
+    background-color: #2a2a2a;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* הודעת אין אקורדים */
+.no-chords {
+    color: #dc3545;
+    text-align: center;
+    padding: 2em;
+    font-style: italic;
+}
+
+/* הדגשה חזותית לאקורדים */
+.chords, .chords-only {
+    position: relative;
+}
+
+.chords::before, .chords-only::before {
+    content: '♪';
+    color: var(--chord-color);
+    margin-left: -15px;
+    margin-right: 5px;
+    font-size: 12px;
+}
+
+/* אנימציה עדינה */
+.chord-lyrics-pair, .chords-only, .lyrics-line, .section-header {
+    animation: fadeInUp 0.3s ease-out;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* רספונסיביות */
+@media (max-width: 768px) {
+    .container {
+        padding: 1rem;
+    }
+
+    #song-title {
+        font-size: 2rem;
+    }
+
+    #artist-name {
+        font-size: 1.2rem;
+    }
+
+    #chords-container {
+        font-size: 14px;
+        padding: 15px;
+    }
+    
+    .chord-lyrics-pair .chords {
+        font-size: 12px;
+    }
+    
+    .chord-lyrics-pair .lyrics {
+        font-size: 14px;
+    }
+    
+    .section-header {
+        font-size: 16px;
+    }
+}
+
+/* עיצוב אקורדים */
+#chords-display {
+    position: relative;
+}
+
+/* צביעת אקורדים */
+#chords-display {
+    counter-reset: line;
+}
+
+#chords-display::before {
+    content: attr(data-chord);
+    color: var(--chord-color);
+    font-weight: bold;
+}
+
+/* עיצוב ספציפי לאקורדים */
+.chord {
+    color: #00d1b2;
+    font-weight: bold;
+}
+
+/* עיצוב שורות */
+.song-line {
+    margin-bottom: 1rem;
+    padding: 0.5rem;
+    border-radius: 5px;
+    transition: background-color 0.3s ease;
+}
+
+.song-line:hover {
+    background-color: rgba(52, 152, 219, 0.1);
+}
+
+/* כותרות חלקים */
+.section-header {
+    color: var(--section-color);
+    font-weight: bold;
+    margin: 1.5em 0 0.5em;
+    font-size: 1.1em;
+    text-align: center;
+    border-bottom: 1px solid #444;
+    padding-bottom: 0.5em;
+}
+
+/* שורות אקורדים */
+.chord-line {
+    margin: 0.5em 0;
+    position: relative;
+}
+
+.chord-line .chords {
+    color: var(--chord-color);
+    font-weight: bold;
+    margin-bottom: 0.2em;
+    min-height: 1.5em;
+}
+
+.chord-line .lyrics {
+    color: #ffffff;
+    margin-bottom: 0.5em;
+}
+
+/* אקורדים בתוך שורות מילים */
+.inline-chord {
+    color: var(--chord-color);
+    font-weight: bold;
+    position: relative;
+    top: -0.5em;
+    font-size: 0.9em;
+}
+
+/* שורות אקורדים בלבד */
+.chords-only {
+    color: var(--chord-color);
+    font-weight: bold;
+    margin: 0.5em 0;
+    min-height: 1.5em;
+}
+
+/* שורות מילים רגילות */
+.lyrics-line {
+    color: #ffffff;
+    margin: 0.5em 0;
+    line-height: 1.6;
+}
+
+/* שורות מעורבות (אקורדים ומילים) */
+.mixed-line {
+    margin: 0.5em 0;
+    line-height: 2;
+    color: #ffffff;
+}
+
+/* סגנונות לתצוגת אקורדים ומילים */
+.chord-display {
+  font-family: 'Courier New', monospace;
+  white-space: pre-wrap;
+  line-height: 1.6;
+  padding: 20px;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+  margin: 10px 0;
+  direction: ltr;
+  text-align: left;
+}
+
+/* שורות מעורבות (אקורדים ומילים יחד) */
+.mixed-line {
+  color: #374151;
+  font-size: 16px;
+  margin: 6px 0;
+  line-height: 1.8;
+}
+
+.mixed-line .inline-chord {
+  color: #2563eb;
+  font-weight: bold;
+  background-color: #eff6ff;
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-size: 12px;
+  margin: 0 2px;
+}
+
+/* רספונסיביות */
+@media (max-width: 768px) {
+  .chord-display {
+    font-size: 14px;
+    padding: 15px;
+  }
+  
+  .chord-lyrics-pair .chords {
+    font-size: 12px;
+  }
+  
+  .chord-lyrics-pair .lyrics {
+    font-size: 14px;
+  }
+  
+  .section-header {
+    font-size: 16px;
+  }
+}
+
+/* אנימציות */
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.song-content {
+    animation: fadeIn 0.5s ease-in;
+}
+
+/* עיצוב ספציפי לאקורדים */
+.chord {
+    color: #00d1b2;
+    font-weight: bold;
+}
+
+/* עיצוב שורות */
+.song-line {
+    margin-bottom: 1rem;
+    padding: 0.5rem;
+    border-radius: 5px;
+    transition: background-color 0.3s ease;
+}
+
+.song-line:hover {
+    background-color: rgba(52, 152, 219, 0.1);
+}
+
+/* כותרות חלקים */
+.section-header {
+    color: var(--section-color);
+    font-weight: bold;
+    margin: 1.5em 0 0.5em;
+    font-size: 1.1em;
+    text-align: center;
+    border-bottom: 1px solid #444;
+    padding-bottom: 0.5em;
+}
+
+/* שורות אקורדים */
+.chord-line {
+    margin: 0.5em 0;
+    position: relative;
+}
+
+.chord-line .chords {
+    color: var(--chord-color);
+    font-weight: bold;
+    margin-bottom: 0.2em;
+    min-height: 1.5em;
+}
+
+.chord-line .lyrics {
+    color: #ffffff;
+    margin-bottom: 0.5em;
+}
+
+/* אקורדים בתוך שורות מילים */
+.inline-chord {
+    color: var(--chord-color);
+    font-weight: bold;
+    position: relative;
+    top: -0.5em;
+    font-size: 0.9em;
+}
+
+/* שורות אקורדים בלבד */
+.chords-only {
+    color: var(--chord-color);
+    font-weight: bold;
+    margin: 0.5em 0;
+    min-height: 1.5em;
+}
+
+/* שורות מילים רגילות */
+.lyrics-line {
+    color: #ffffff;
+    margin: 0.5em 0;
+    line-height: 1.6;
+}
+
+/* שורות מעורבות (אקורדים ומילים) */
+.mixed-line {
+    margin: 0.5em 0;
+    line-height: 2;
+    color: #ffffff;
+}
+
+/* הודעת אין אקורדים */
+.no-chords {
+    color: #dc3545;
+    text-align: center;
+    padding: 2em;
+    font-style: italic;
+}
+
+/* סגנונות לתצוגת אקורדים ומילים */
+.chord-display {
+  font-family: 'Courier New', monospace;
+  white-space: pre-wrap;
+  line-height: 1.6;
+  padding: 20px;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+  margin: 10px 0;
+  direction: ltr;
+  text-align: left;
+}
+
+/* זוג של שורת אקורדים ושורת מילים */
+.chord-lyrics-pair {
+  margin-bottom: 12px;
+}
+
+.chord-lyrics-pair .chords {
+  color: #2563eb;
+  font-weight: bold;
+  font-size: 14px;
+  margin-bottom: 2px;
+  letter-spacing: 0.5px;
+}
+
+.chord-lyrics-pair .lyrics {
+  color: #374151;
+  font-size: 16px;
+  margin-bottom: 8px;
+}
+
+/* שורת אקורדים בלבד */
+.chords-only {
+  color: #2563eb;
+  font-weight: bold;
+  font-size: 14px;
+  margin: 8px 0;
+  padding-left: 10px;
+  border-left: 3px solid #2563eb;
+  letter-spacing: 0.5px;
+}
+
+/* שורת מילים בלבד */
+.lyrics-line {
+  color: #374151;
+  font-size: 16px;
+  margin: 4px 0;
+  padding-left: 5px;
+}
+
+/* כותרות סקציות */
+.section-header {
+  font-weight: bold;
+  color: #dc2626;
+  font-size: 18px;
+  margin: 20px 0 10px 0;
+  padding: 8px 12px;
+  background-color: #fef2f2;
+  border-left: 4px solid #dc2626;
+  border-radius: 4px;
+}
+
+/* שורות מעורבות (אקורדים ומילים יחד) */
+.mixed-line {
+  color: #374151;
+  font-size: 16px;
+  margin: 6px 0;
+  line-height: 1.8;
+}
+
+.mixed-line .inline-chord {
+  color: #2563eb;
+  font-weight: bold;
+  background-color: #eff6ff;
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-size: 12px;
+  margin: 0 2px;
+}
+
+/* רספונסיביות */
+@media (max-width: 768px) {
+  .chord-display {
+    font-size: 14px;
+    padding: 15px;
+  }
+  
+  .chord-lyrics-pair .chords {
+    font-size: 12px;
+  }
+  
+  .chord-lyrics-pair .lyrics {
+    font-size: 14px;
+  }
+  
+  .section-header {
+    font-size: 16px;
+  }
+}
+
+/* הדגשה חזותית לאקורדים */
+.chords, .chords-only {
+  position: relative;
+}
+
+.chords::before, .chords-only::before {
+  content: '♪';
+  color: #2563eb;
+  margin-left: -15px;
+  margin-right: 5px;
+  font-size: 12px;
+}
+
+/* אנימציה עדינה */
+.chord-lyrics-pair, .chords-only, .lyrics-line, .section-header {
+  animation: fadeInUp 0.3s ease-out;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+} 

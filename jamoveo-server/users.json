@@ -1,0 +1,62 @@
+[
+  {
+    "username": "כ",
+    "password": "כ",
+    "instrument": "guitar",
+    "isAdmin": false
+  },
+  {
+    "username": "ג",
+    "password": "ג",
+    "instrument": "vocals",
+    "isAdmin": false
+  },
+  {
+    "username": "ד",
+    "password": "ד",
+    "instrument": "guitar",
+    "isAdmin": true
+  },
+  {
+    "username": "ק",
+    "password": "ק",
+    "instrument": "guitar",
+    "isAdmin": false
+  },
+  {
+    "username": "׳",
+    "password": "r",
+    "instrument": "vocals",
+    "isAdmin": true
+  },
+  {
+    "username": "ט",
+    "password": "ט",
+    "instrument": "guitar",
+    "isAdmin": true
+  },
+  {
+    "username": "w",
+    "password": "w",
+    "instrument": "vocals",
+    "isAdmin": true
+  },
+  {
+    "username": "t",
+    "password": "t",
+    "instrument": "guitar",
+    "isAdmin": false
+  },
+  {
+    "username": "u",
+    "password": "u",
+    "instrument": "vocals",
+    "isAdmin": false
+  },
+  {
+    "username": "r",
+    "password": "r",
+    "instrument": "guitar",
+    "isAdmin": true
+  }
+]

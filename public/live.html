@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jamoveo - שיר חי</title>
+    <link rel="stylesheet" href="css/live.css">
+    <script src="/socket.io/socket.io.js"></script>
+</head>
+<body>
+    <div class="container">
+        <div class="song-info">
+            <h2 id="song-title">Select a song</h2>
+            <h4 id="artist-name"></h4>
+        </div>
+        
+        <div id="waiting-message">
+            <p>Waiting for song selection...</p>
+        </div>
+        
+        <div id="chords-container" style="display: none;">
+            <div class="chords-text">
+                <!-- Here the chords and lyrics will be displayed in the new format -->
+            </div>
+        </div>
+        
+        <!-- Back button to search - only shown to admins -->
+        <div id="admin-controls" style="display: none; position: fixed; top: 20px; left: 20px;">
+            <button onclick="backToSearch()" style="
+                padding: 10px 20px;
+                background-color: #333;
+                color: white;
+                border: none;
+                border-radius: 5px;
+                cursor: pointer;
+                font-size: 16px;
+            ">← Back to search</button>
+        </div>
+        
+            <!-- Auto scroll controls - for all users -->
+        <div id="scroll-controls" style="display: none; position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background-color: rgba(0,0,0,0.8); padding: 15px; border-radius: 10px; z-index: 1000;">
+            <button onclick="startAutoScroll()" style="
+                padding: 8px 16px;
+                margin: 0 5px;
+                background-color: #28a745;
+                color: white;
+                border: none;
+                border-radius: 5px;
+                cursor: pointer;
+                font-size: 14px;
+            ">▶ Start scrolling</button>
+            
+            <button onclick="stopAutoScroll()" style="
+                padding: 8px 16px;
+                margin: 0 5px;
+                background-color: #dc3545;
+                color: white;
+                border: none;
+                border-radius: 5px;
+                cursor: pointer;
+                font-size: 14px;
+            ">⏸ Stop scrolling</button>
+            
+            <button onclick="changeScrollSpeed(0.5)" style="
+                padding: 8px 12px;
+                margin: 0 2px;
+                background-color: #6c757d;
+                color: white;
+                border: none;
+                border-radius: 5px;
+                cursor: pointer;
+                font-size: 14px;
+            ">0.5x</button>
+            
+            <button onclick="changeScrollSpeed(1)" style="
+                padding: 8px 12px;
+                margin: 0 2px;
+                background-color: #6c757d;
+                color: white;
+                border: none;
+                border-radius: 5px;
+                cursor: pointer;
+                font-size: 14px;
+            ">1x</button>
+            
+            <button onclick="changeScrollSpeed(2)" style="
+                padding: 8px 12px;
+                margin: 0 2px;
+                background-color: #6c757d;
+                color: white;
+                border: none;
+                border-radius: 5px;
+                cursor: pointer;
+                font-size: 14px;
+            ">2x</button>
+            
+            <button onclick="changeScrollSpeed(3)" style="
+                padding: 8px 12px;
+                margin: 0 2px;
+                background-color: #6c757d;
+                color: white;
+                border: none;
+                border-radius: 5px;
+                cursor: pointer;
+                font-size: 14px;
+            ">3x</button>
+        </div>
+    </div>
+
+    <script>
+        // Check if Socket.IO is loaded
+        
+        console.log('Socket.IO loaded successfully');
+        
+
+        const socket = io();
+        const songTitle = document.getElementById('song-title');
+        const artistName = document.getElementById('artist-name');
+        const chordsContainer = document.getElementById('chords-container');
+        const waitingMessage = document.getElementById('waiting-message');
+
+        // Variable to store the current song
+        let currentSong = null;
+
+        // Variables for auto-scrolling
+        let autoScrollInterval = null;
+        let scrollSpeed = 1; // Scroll speed in pixels for every 50ms
+        let isAutoScrolling = false;
+
+        // Function to start auto-scrolling
+        function startAutoScroll() {
+            if (autoScrollInterval) return;
+            
+            isAutoScrolling = true;
+            autoScrollInterval = setInterval(() => {
+                // Scroll down at the set speed
+                window.scrollBy(0, scrollSpeed);
+                
+                // Stop auto-scrolling at the end of the page
+                if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight) {
+                    stopAutoScroll();
+                }
+            }, 50); // Every 50 milliseconds
+        }
+
+        // Function to stop auto-scrolling
+        function stopAutoScroll() {
+            if (autoScrollInterval) {
+                clearInterval(autoScrollInterval);
+                autoScrollInterval = null;
+                isAutoScrolling = false;
+            }
+        }
+
+        // Function to change scroll speed
+        function changeScrollSpeed(newSpeed) {
+            scrollSpeed = newSpeed;
+            console.log('Scroll speed changed to:', scrollSpeed);
+        }
+
+        // Function to update the song display
+function updateSongDisplay(song) {
+    if (!song) {
+        document.getElementById("song-title").textContent = "No song selected";
+        document.getElementById("artist-name").textContent = "";
+        document.getElementById("chords-container").style.display = "none";
+        waitingMessage.style.display = "block";
+        document.getElementById('scroll-controls').style.display = 'none';
+        return;
+    }
+
+    // Check if the user is a vocalist via URL parameter
+    const urlParams = new URLSearchParams(window.location.search);
+    const userInstrument = urlParams.get('instrument');
+    const isVocalist = userInstrument === "vocals";
+    
+    console.log('User instrument:', userInstrument, 'Is vocalist:', isVocalist);
+    
+    document.getElementById("song-title").textContent = song.song;
+    document.getElementById("artist-name").textContent = song.artist;
+    
+    // Display content according to the user type
+    let content = "";
+    if (isVocalist) {
+        // For vocalists - only lyrics (if separate lyrics data is available)
+        content = song.lyrics || extractLyricsFromChords(song.chords) || "No lyrics available.";
+        console.log('Displaying lyrics only for vocalist');
+    } else {
+        // For instrumentalists - chords and lyrics
+        content = song.chords || "No chords available.";
+        console.log('Displaying chords and lyrics for instrumentalist');
+    }
+
+    document.getElementById("chords-container").style.display = "block";
+    waitingMessage.style.display = "none";
+    document.getElementById('scroll-controls').style.display = "block";
+    
+    // Update the chords/lyrics content
+    const chordsText = document.querySelector('.chords-text');
+    chordsText.innerHTML = content.replace(/\n/g, "<br>");
+    
+    console.log('Content displayed successfully');
+}
+
+// Function to extract lyrics from chords (if separate lyrics data is available)
+function extractLyricsFromChords(chordsText) {
+    if (!chordsText) return '';
+    
+    // Remove lines that contain only chords (in English/Hebrew)
+    const lines = chordsText.split('\n');
+    const lyricsLines = lines.filter(line => {
+        // If the line is empty or contains only spaces - keep it
+        if (line.trim() === '') return true;
+        
+        // Remove chords from the line
+        const chordPattern = /[A-G][#b]?[m]?[0-9]?[+\-]?/g;
+        const lineWithoutChords = line.replace(chordPattern, '').trim();
+        
+        // If after removing the chords there are only spaces - this is a chord line only
+        if (lineWithoutChords === '') return false;
+        
+        // Otherwise - this is a line of lyrics (with or without chords)
+        return true;
+    }).map(line => {
+        // Remove the chords from the final line
+        const chordPattern = /[A-G][#b]?[m]?[0-9]?[+\-]?/g;
+        return line.replace(chordPattern, '').trim();
+    });
+    
+    return lyricsLines.join('\n');
+}
+
+        // Receive the selected song
+        socket.on('song-selected', function(song) {
+            console.log('Song selected event received:', song);
+            console.log('Song object details:', {
+                song: song.song,
+                artist: song.artist,
+                hasChords: song.hasChords,
+                chordsLength: song.chords ? song.chords.length : 0
+            });
+            updateSongDisplay(song);
+        });
+
+        // Add listener for all events for debugging
+        socket.onAny((eventName, ...args) => {
+            console.log('Received event:', eventName, args);
+        });
+
+        // Song quit event
+        socket.on('song-quit', () => {
+            console.log('Song session ended');
+            currentSong = null;
+            
+            // Check if the user is an admin
+            const urlParams = new URLSearchParams(window.location.search);
+            const isAdmin = urlParams.has('admin') || window.location.href.includes('admin=true');
+            
+            if (!isAdmin) {
+                console.log('Player detected, redirecting to player page');
+                // Player - go back to the waiting page
+                window.location.href = '/player.html';
+            } else {
+                console.log('Admin detected, staying on live page');
+                // Admin - show the waiting page
+                songTitle.textContent = 'Select a song';
+                artistName.textContent = '';
+                chordsContainer.style.display = 'none';
+                waitingMessage.style.display = 'block';
+                
+                // Stop auto-scrolling and hide the scroll controls
+                stopAutoScroll();
+                document.getElementById('scroll-controls').style.display = 'none';
+            }
+        });
+
+        // Handle errors
+        socket.on('error', (error) => {
+            console.error('Socket error:', error);
+        });
+
+        // Handle disconnection and reconnection
+        socket.on('disconnect', () => {
+            console.log('Disconnected from server');
+        });
+
+        // Socket.IO reconnection events
+        socket.io.on('reconnect', (attemptNumber) => {
+            console.log('Reconnected after', attemptNumber, 'attempts');
+            // Send a message that we are back on the live page
+            socket.emit('join-live');
+        });
+
+        socket.io.on('reconnect_attempt', (attemptNumber) => {
+            console.log('Attempting to reconnect, attempt', attemptNumber);
+        });
+
+        socket.io.on('reconnect_error', (error) => {
+            console.log('Reconnection error:', error);
+        });
+
+        socket.io.on('reconnect_failed', () => {
+            console.log('Reconnection failed');
+        });
+
+        // Check the connection status every few seconds
+        setInterval(() => {
+            if (!socket.connected) {
+                console.log('Socket is disconnected, current state:', socket.io.readyState);
+            }
+        }, 5000);
+
+        // Check the initial connection state
+        console.log('Initial socket connected state:', socket.connected);
+
+        // Connect to the server
+        socket.on('connect', () => {
+            console.log('Connected to server (connect event)');
+            console.log('Socket ID:', socket.id);
+            // Send a message that we are back on the live page
+            setTimeout(() => {
+                console.log('Emitting join-live event');
+                socket.emit('join-live');
+            }, 50);
+        });
+
+        // Function to clean HTML
+        function sanitizeHTML(str) {
+            if (!str) return '';
+            const temp = document.createElement('div');
+            temp.textContent = str;
+            return temp.innerHTML;
+        }
+
+        // Function to go back to the search page
+        function backToSearch() {
+            // Clean the current song on the server
+            fetch('/api/quit-song', { method: 'POST' })
+                .then(() => {
+                    window.location.href = '/admin.html';
+                })
+                .catch(err => {
+                    console.error('Error quitting song:', err);
+                    window.location.href = '/admin.html';
+                });
+        }
+
+        // Check if the user is an admin
+        const urlParams = new URLSearchParams(window.location.search);
+        const isAdmin = urlParams.has('admin') || window.location.href.includes('admin=true');
+        
+        if (isAdmin) {
+            console.log('Admin user detected');
+            document.getElementById('admin-controls').style.display = 'block';
+        }
+    </script>
+</body>
+</html> 
