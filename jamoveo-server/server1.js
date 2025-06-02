@@ -1,4 +1,5 @@
 const express = require("express");
+const session = require("express-session");
 const fs = require("fs");
 const path = require("path");
 const puppeteer = require("puppeteer");
@@ -14,6 +15,18 @@ const io = socketIo(server, {
     methods: ["GET", "POST"]
   }
 });
+
+// הגדרת session - מוסיפים את זה לפני כל ה-middleware האחרים
+app.use(session({
+  secret: 'jamoveo-secret-key-change-this-in-production',
+  resave: false,
+  saveUninitialized: false,
+  cookie: { 
+    secure: false, // שנה ל-true ב-production עם HTTPS
+    httpOnly: true,
+    maxAge: 24 * 60 * 60 * 1000 // 24 שעות
+  }
+}));
 
 // הגדרת MIME types
 app.use((req, res, next) => {
@@ -53,9 +66,14 @@ io.on('connection', (socket) => {
   // שליחת השיר הנוכחי למשתמש שמתחבר לדף ה-live
   socket.on('join-live', () => {
     console.log('User joined live page:', socket.id);
+    const userData = connectedUsers.get(socket.id);
     if (currentSong) {
       console.log(`Sending current song to live page user ${socket.id}:`, currentSong.song);
-      socket.emit('song-selected', currentSong);
+      // שליחת השיר יחד עם ה-instrument של המשתמש
+      socket.emit('song-selected', {
+        ...currentSong,
+        userInstrument: userData?.instrument || null
+      });
     }
   });
 
@@ -130,11 +148,51 @@ app.post("/api/login", (req, res) => {
     return res.status(401).json({ message: "Invalid username or password" });
   }
 
+  // שמירת המשתמש ב-session
+  req.session.user = {
+    username: user.username,
+    instrument: user.instrument,
+    role: user.isAdmin ? "admin" : "player"
+  };
+
   res.json({ 
     message: "Login successful",
-    role: user.isAdmin ? "admin" : "player",
+    role: req.session.user.role,
     instrument: user.instrument
   });
+});
+
+// middleware functions לבדיקת הרשאות
+function requireLogin(req, res, next) {
+  if (!req.session.user) {
+    return res.status(401).json({ error: "Authentication required" });
+  }
+  next();
+}
+
+function requireAdmin(req, res, next) {
+  if (!req.session.user || req.session.user.role !== 'admin') {
+    return res.status(403).json({ error: "Admin access required" });
+  }
+  next();
+}
+
+// API endpoint ל-logout
+app.post("/api/logout", (req, res) => {
+  req.session.destroy((err) => {
+    if (err) {
+      return res.status(500).json({ message: "Failed to logout" });
+    }
+    res.json({ message: "Logged out successfully" });
+  });
+});
+
+// API endpoint לקבלת פרטי המשתמש הנוכחי
+app.get("/api/current-user", (req, res) => {
+  if (!req.session.user) {
+    return res.status(401).json({ message: "Not logged in" });
+  }
+  res.json({ user: req.session.user });
 });
 
 // פונקציות עזר לסקרייפינג
@@ -834,8 +892,8 @@ function processChords(rawChords) {
   };
 }
 
-// עדכון נקודת הקצה לבחירת שיר - גרסה מתוקנת
-app.post('/api/select-song', async (req, res) => {
+// עדכון נקודת הקצה לבחירת שיר - רק אדמין יכול לבחור שירים
+app.post('/api/select-song', requireAdmin, async (req, res) => {
   try {
     const { song, artist, url } = req.body;
     console.log('🎵 Song selected:', { song, artist, url });
@@ -939,8 +997,8 @@ app.get('/api/current-song', (req, res) => {
   });
 });
 
-// נתיב ליציאה מהשיר
-app.post('/api/quit-song', (req, res) => {
+// נתיב ליציאה מהשיר - רק אדמין יכול לסיים שיר
+app.post('/api/quit-song', requireAdmin, (req, res) => {
   console.log('🚪 Quitting current song');
   currentSong = null;
   

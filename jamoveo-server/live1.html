@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jamoveo - שיר חי</title>
+    <link rel="stylesheet" href="css/live.css">
+    <script src="/socket.io/socket.io.js"></script>
+</head>
+<body>
+    <div class="container">
+        <div class="song-info">
+            <h2 id="song-title">בחר שיר</h2>
+            <h4 id="artist-name"></h4>
+        </div>
+        
+        <div id="waiting-message">
+            <p>ממתין לבחירת שיר...</p>
+        </div>
+        
+        <div id="chords-container" style="display: none;">
+            <div class="chords-text">
+                <!-- כאן יוצגו האקורדים והמילים בפורמט החדש -->
+            </div>
+        </div>
+        
+        <!-- כפתור חזרה לחיפוש - יוצג רק לאדמין -->
+        <div id="admin-controls" style="display: none; position: fixed; top: 20px; left: 20px;">
+            <button onclick="backToSearch()" style="
+                padding: 10px 20px;
+                background-color: #333;
+                color: white;
+                border: none;
+                border-radius: 5px;
+                cursor: pointer;
+                font-size: 16px;
+            ">← חזרה לחיפוש</button>
+        </div>
+        
+        <!-- בקרות גלילה אוטומטית - לכל המשתמשים -->
+        <div id="scroll-controls" style="display: none; position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background-color: rgba(0,0,0,0.8); padding: 15px; border-radius: 10px; z-index: 1000;">
+            <button onclick="startAutoScroll()" style="
+                padding: 8px 16px;
+                margin: 0 5px;
+                background-color: #28a745;
+                color: white;
+                border: none;
+                border-radius: 5px;
+                cursor: pointer;
+                font-size: 14px;
+            ">▶ התחל גלילה</button>
+            
+            <button onclick="stopAutoScroll()" style="
+                padding: 8px 16px;
+                margin: 0 5px;
+                background-color: #dc3545;
+                color: white;
+                border: none;
+                border-radius: 5px;
+                cursor: pointer;
+                font-size: 14px;
+            ">⏸ עצור גלילה</button>
+            
+            <button onclick="changeScrollSpeed(0.5)" style="
+                padding: 8px 12px;
+                margin: 0 2px;
+                background-color: #6c757d;
+                color: white;
+                border: none;
+                border-radius: 5px;
+                cursor: pointer;
+                font-size: 14px;
+            ">0.5x</button>
+            
+            <button onclick="changeScrollSpeed(1)" style="
+                padding: 8px 12px;
+                margin: 0 2px;
+                background-color: #6c757d;
+                color: white;
+                border: none;
+                border-radius: 5px;
+                cursor: pointer;
+                font-size: 14px;
+            ">1x</button>
+            
+            <button onclick="changeScrollSpeed(2)" style="
+                padding: 8px 12px;
+                margin: 0 2px;
+                background-color: #6c757d;
+                color: white;
+                border: none;
+                border-radius: 5px;
+                cursor: pointer;
+                font-size: 14px;
+            ">2x</button>
+            
+            <button onclick="changeScrollSpeed(3)" style="
+                padding: 8px 12px;
+                margin: 0 2px;
+                background-color: #6c757d;
+                color: white;
+                border: none;
+                border-radius: 5px;
+                cursor: pointer;
+                font-size: 14px;
+            ">3x</button>
+        </div>
+    </div>
+
+    <script>
+        // בדיקה ש-Socket.IO נטען
+        if (typeof io === 'undefined') {
+            console.error('Socket.IO not loaded!');
+            alert('שגיאה בטעינת Socket.IO');
+        } else {
+            console.log('Socket.IO loaded successfully');
+        }
+
+        const socket = io();
+        const songTitle = document.getElementById('song-title');
+        const artistName = document.getElementById('artist-name');
+        const chordsContainer = document.getElementById('chords-container');
+        const waitingMessage = document.getElementById('waiting-message');
+
+        // משתנה לשמירת השיר הנוכחי
+        let currentSong = null;
+
+        // משתנים לגלילה אוטומטית
+        let autoScrollInterval = null;
+        let scrollSpeed = 1; // מהירות הגלילה בפיקסלים לכל 50ms
+        let isAutoScrolling = false;
+
+        // פונקציה להתחלת גלילה אוטומטית
+        function startAutoScroll() {
+            if (autoScrollInterval) return;
+            
+            isAutoScrolling = true;
+            autoScrollInterval = setInterval(() => {
+                // גלילה למטה במהירות שנקבעה
+                window.scrollBy(0, scrollSpeed);
+                
+                // עצירה אוטומטית בסוף הדף
+                if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight) {
+                    stopAutoScroll();
+                }
+            }, 50); // כל 50 מילישניות
+        }
+
+        // פונקציה לעצירת גלילה אוטומטית
+        function stopAutoScroll() {
+            if (autoScrollInterval) {
+                clearInterval(autoScrollInterval);
+                autoScrollInterval = null;
+                isAutoScrolling = false;
+            }
+        }
+
+        // פונקציה לשינוי מהירות הגלילה
+        function changeScrollSpeed(newSpeed) {
+            scrollSpeed = newSpeed;
+            console.log('Scroll speed changed to:', scrollSpeed);
+        }
+
+        // פונקציה לעדכון תצוגת השיר
+        function updateSongDisplay(song) {
+            console.log('Updating song display:', song);
+            
+            // עצירת גלילה אוטומטית אם פעילה
+            stopAutoScroll();
+            
+            // גלילה לראש הדף
+            window.scrollTo(0, 0);
+            
+            // שמירת השיר הנוכחי
+            currentSong = song;
+            
+            // בדיקה אם יש שיר
+            if (!song || !song.song) {
+                console.log('No song data, showing waiting message');
+                songTitle.textContent = 'ממתין לשיר';
+                artistName.textContent = '';
+                chordsContainer.style.display = 'none';
+                waitingMessage.style.display = 'block';
+                document.getElementById('scroll-controls').style.display = 'none';
+                return;
+            }
+            
+            // עדכון כותרת ואמן
+            songTitle.textContent = sanitizeHTML(song.song || '');
+            artistName.textContent = sanitizeHTML(song.artist || '');
+            
+            // בדיקה אם המשתמש הוא vocalist
+            const isVocalist = song.userInstrument === 'vocals';
+            
+            // עדכון תוכן האקורדים/מילים
+            if (song.chords && song.chords !== 'Chords not available') {
+                console.log('Setting content:', isVocalist ? 'lyrics only' : 'chords and lyrics');
+                const chordsText = document.querySelector('.chords-text');
+                
+                let formattedContent;
+                if (isVocalist) {
+                    // למשתמשי vocal - הצג רק מילים
+                    formattedContent = song.lyrics
+                        .replace(/\n/g, '<br>')
+                        .replace(/\s{2,}/g, '&nbsp;&nbsp;');
+                } else {
+                    // למשתמשים אחרים - הצג אקורדים ומילים
+                    formattedContent = song.chords
+                        .replace(/\n/g, '<br>')
+                        .replace(/\s{2,}/g, '&nbsp;&nbsp;');
+                }
+                
+                chordsText.innerHTML = formattedContent;
+                chordsContainer.style.display = 'block';
+                waitingMessage.style.display = 'none';
+                
+                // הצגת כפתורי הגלילה
+                document.getElementById('scroll-controls').style.display = 'block';
+                
+                // הוספת לוג לדיבוג
+                console.log('Content displayed successfully');
+            } else {
+                console.log('No content available');
+                const chordsText = document.querySelector('.chords-text');
+                chordsText.innerHTML = '<div class="no-chords">אקורדים לא זמינים</div>';
+                chordsContainer.style.display = 'block';
+                waitingMessage.style.display = 'none';
+                
+                // הסתרת כפתורי הגלילה אם אין תוכן
+                document.getElementById('scroll-controls').style.display = 'none';
+            }
+        }
+
+        // קבלת שיר שנבחר
+        socket.on('song-selected', function(song) {
+            console.log('Song selected event received:', song);
+            console.log('Song object details:', {
+                song: song.song,
+                artist: song.artist,
+                hasChords: song.hasChords,
+                chordsLength: song.chords ? song.chords.length : 0
+            });
+            updateSongDisplay(song);
+        });
+
+        // הוספת listener לכל האירועים לצורך דיבוג
+        socket.onAny((eventName, ...args) => {
+            console.log('Received event:', eventName, args);
+        });
+
+        // יציאה מהשיר
+        socket.on('song-quit', () => {
+            console.log('Song session ended');
+            currentSong = null;
+            
+            // אם זה שחקן, חזור לדף player
+            const urlParams = new URLSearchParams(window.location.search);
+            const isAdmin = urlParams.has('admin') || window.location.href.includes('admin=true');
+            
+            if (!isAdmin) {
+                // שחקן - חזור לדף ההמתנה
+                window.location.href = '/player.html';
+            } else {
+                // אדמין - הצג מסך המתנה
+                songTitle.textContent = 'בחר שיר';
+                artistName.textContent = '';
+                chordsContainer.style.display = 'none';
+                waitingMessage.style.display = 'block';
+                
+                // עצירת גלילה והסתרת כפתורי הגלילה
+                stopAutoScroll();
+                document.getElementById('scroll-controls').style.display = 'none';
+            }
+        });
+
+        // טיפול בשגיאות
+        socket.on('error', (error) => {
+            console.error('Socket error:', error);
+        });
+
+        // טיפול בניתוק והתחברות מחדש
+        socket.on('disconnect', () => {
+            console.log('Disconnected from server');
+        });
+
+        // אירועי התחברות מחדש של Socket.IO
+        socket.io.on('reconnect', (attemptNumber) => {
+            console.log('Reconnected after', attemptNumber, 'attempts');
+            // שליחת הודעה שהתחברנו כדף live
+            socket.emit('join-live');
+        });
+
+        socket.io.on('reconnect_attempt', (attemptNumber) => {
+            console.log('Attempting to reconnect, attempt', attemptNumber);
+        });
+
+        socket.io.on('reconnect_error', (error) => {
+            console.log('Reconnection error:', error);
+        });
+
+        socket.io.on('reconnect_failed', () => {
+            console.log('Reconnection failed');
+        });
+
+        // בדיקת סטטוס החיבור כל כמה שניות
+        setInterval(() => {
+            if (!socket.connected) {
+                console.log('Socket is disconnected, current state:', socket.io.readyState);
+            }
+        }, 5000);
+
+        // בדיקת מצב החיבור הראשוני
+        console.log('Initial socket connected state:', socket.connected);
+
+        // התחברות לשרת
+        socket.on('connect', () => {
+            console.log('Connected to server (connect event)');
+            console.log('Socket ID:', socket.id);
+            // שליחת הודעה שהתחברנו כדף live
+            setTimeout(() => {
+                console.log('Emitting join-live event');
+                socket.emit('join-live');
+            }, 50);
+        });
+
+        // פונקציה לניקוי HTML
+        function sanitizeHTML(str) {
+            if (!str) return '';
+            const temp = document.createElement('div');
+            temp.textContent = str;
+            return temp.innerHTML;
+        }
+
+        // פונקציה לחזרה לחיפוש - חייבת להיות גלובלית בשביל onclick
+        function backToSearch() {
+            // ניקוי שיר נוכחי בשרת
+            fetch('/api/quit-song', { method: 'POST' })
+                .then(() => {
+                    window.location.href = '/admin.html';
+                })
+                .catch(err => {
+                    console.error('Error quitting song:', err);
+                    window.location.href = '/admin.html';
+                });
+        }
+
+        // בדיקה אם המשתמש הוא אדמין
+        const urlParams = new URLSearchParams(window.location.search);
+        const isAdmin = urlParams.has('admin') || window.location.href.includes('admin=true');
+        
+        if (isAdmin) {
+            console.log('Admin user detected');
+            document.getElementById('admin-controls').style.display = 'block';
+        }
+    </script>
+</body>
+</html> 
