@@ -7,7 +7,10 @@ document.getElementById("loginForm").addEventListener("submit", async (e) => {
     password: form.password.value
   };
 
-  const res = await fetch("http://localhost:3000/api/login", {
+  // Get the current origin (domain) of the page
+  const apiUrl = window.location.origin + "/api/login";
+
+  const res = await fetch(apiUrl, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(user)
@@ -15,12 +18,12 @@ document.getElementById("loginForm").addEventListener("submit", async (e) => {
 
   const result = await res.json();
   if (res.ok) {
-    // שמירת נתוני המשתמש לשימוש בהמשך
+    // Save user data for later use
     sessionStorage.setItem("username", user.username);
     sessionStorage.setItem("instrument", result.instrument);
     sessionStorage.setItem("isAdmin", result.role === "admin");
 
-    // ניתוב לפי תפקיד
+    // Redirect based on role
     if (result.role === "admin") {
       window.location.href = "admin.html";
     } else {

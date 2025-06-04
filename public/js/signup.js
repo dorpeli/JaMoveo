@@ -9,7 +9,10 @@ document.getElementById("signupForm").addEventListener("submit", async (e) => {
     isAdmin: form.admin?.checked || false  // תומך בתיבת סימון של אדמין אם קיימת
   };
 
-  const res = await fetch("http://localhost:3000/api/signup", {
+  // Get the current origin (domain) of the page
+  const apiUrl = window.location.origin + "/api/signup";
+
+  const res = await fetch(apiUrl, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(user)
@@ -20,12 +23,12 @@ document.getElementById("signupForm").addEventListener("submit", async (e) => {
   if (res.ok) {
     alert("Signup successful!");
 
-    // שמירה זמנית לשימוש בהמשך
+    // Save user data for later use
     sessionStorage.setItem("username", user.username);
     sessionStorage.setItem("instrument", user.instrument);
     sessionStorage.setItem("isAdmin", user.isAdmin);
 
-    // ניתוב לפי תפקיד
+    // Redirect based on role
     if (user.isAdmin) {
       window.location.href = "admin.html";
     } else {
